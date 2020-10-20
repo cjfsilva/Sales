@@ -2,7 +2,9 @@
 using SalesWebMvc.Models;
 using SalesWebMvc.Services;
 using SalesWebMvc.Services.Exceptions;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace SalesWebMvc.Controllers {
     public class SellersController : Controller {
@@ -32,11 +34,11 @@ namespace SalesWebMvc.Controllers {
         }
         public IActionResult Delete(int? id) {
             if(id == null) {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not provided"});
             }
             var obj = _sellerService.FindByID(id.Value);
             if(obj == null) {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not found" });
             }
             return View(obj);
         }
@@ -50,22 +52,22 @@ namespace SalesWebMvc.Controllers {
 
         public IActionResult Details(int? id) {
             if (id == null) {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not provided" });
             }
             var obj = _sellerService.FindByID(id.Value);
             if (obj == null) {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not found" });
             }
             return View(obj);
         }
 
         public IActionResult Edit(int? id) {
             if(id == null) {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not provided" });
             }
             var obj = _sellerService.FindByID(id.Value);
             if(obj == null) {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not found" });
             }
             List<Department> departments = _departmentService.FindAll();
             SellerFormViewModel viewModel = new SellerFormViewModel { Seller = obj, Departments = departments };
@@ -76,16 +78,22 @@ namespace SalesWebMvc.Controllers {
         [ValidateAntiForgeryToken]
         public IActionResult Edit(int id, Seller seller) {
             if(id != seller.Id) {
-                return BadRequest();
+                return RedirectToAction(nameof(Error), new { message = "Id mismatch" });
             }
             try {
                 _sellerService.Update(seller);
                 return RedirectToAction(nameof(Index));
-            } catch (NotFoundException) {
-                return NotFound();
-            } catch (DbConcurrencyException){
-                return BadRequest();
-            }
+            } catch (ApplicationException e) {
+                return RedirectToAction(nameof(Error), new { message = e.Message });
+            } 
+        }
+
+        public IActionResult Error(string message) {
+            var viewModel = new ErrorViewModel {
+                Message = message,
+                RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
+            };
+            return View(viewModel);
         }
     }
 }
