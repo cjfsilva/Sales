@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SalesWebMvc.Models;
 using SalesWebMvc.Services;
+using SalesWebMvc.Services.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace SalesWebMvc.Controllers {
@@ -38,11 +40,11 @@ namespace SalesWebMvc.Controllers {
             return RedirectToAction(nameof(Index));
         }
         public async Task<IActionResult> Delete(int? id) {
-            if(id == null) {
-                return RedirectToAction(nameof(Error), new { message = "Id not provided"});
+            if (id == null) {
+                return RedirectToAction(nameof(Error), new { message = "Id not provided" });
             }
             var obj = await _sellerService.FindByIDAsync(id.Value);
-            if(obj == null) {
+            if (obj == null) {
                 return RedirectToAction(nameof(Error), new { message = "Id not found" });
             }
             return View(obj);
@@ -51,8 +53,12 @@ namespace SalesWebMvc.Controllers {
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id) {
-            await _sellerService.RemoveAsync(id);
-            return RedirectToAction(nameof(Index));
+            try {
+                await _sellerService.RemoveAsync(id);
+                return RedirectToAction(nameof(Index));
+            } catch (IntegrityException e) {
+                return RedirectToAction(nameof(Error), new { message = e.Message });
+            }
         }
 
         public async Task<IActionResult> Details(int? id) {
@@ -67,11 +73,11 @@ namespace SalesWebMvc.Controllers {
         }
 
         public async Task<IActionResult> Edit(int? id) {
-            if(id == null) {
+            if (id == null) {
                 return RedirectToAction(nameof(Error), new { message = "Id not provided" });
             }
             var obj = await _sellerService.FindByIDAsync(id.Value);
-            if(obj == null) {
+            if (obj == null) {
                 return RedirectToAction(nameof(Error), new { message = "Id not found" });
             }
             List<Department> departments = await _departmentService.FindAllAsync();
@@ -95,7 +101,7 @@ namespace SalesWebMvc.Controllers {
                 return RedirectToAction(nameof(Index));
             } catch (ApplicationException e) {
                 return RedirectToAction(nameof(Error), new { message = e.Message });
-            } 
+            }
         }
 
         public IActionResult Error(string message) {
